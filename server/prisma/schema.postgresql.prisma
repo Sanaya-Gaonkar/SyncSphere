@@ -1,0 +1,132 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("EDITOR")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    String?
+  remoteWooId Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Attribute {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  options   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String    @id @default(uuid())
+  name              String
+  sku               String    @unique
+  slug              String
+  shortDescription  String?
+  description       String?
+  regularPrice      Float     @default(0)
+  salePrice         Float?
+  costPrice         Float?
+  stockQuantity     Int       @default(0)
+  stockStatus       String    @default("INSTOCK")
+  manageStock       Boolean   @default(true)
+  categories        String    @default("[]")
+  tags              String    @default("[]")
+  attributes        String    @default("[]")
+  images            String    @default("[]")
+  completenessScore Int       @default(0)
+  missingFields     String    @default("[]")
+  status            String    @default("DRAFT")
+  syncStatus        String    @default("DRAFT")
+  remoteWooId       Int?
+  lastSyncedAt      DateTime?
+  localChecksum     String?
+  remoteChecksum    String?
+  hasConflict       Boolean   @default(false)
+  conflictDetails   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model SyncJob {
+  id            String    @id @default(uuid())
+  jobType       String
+  status        String
+  isSimulated   Boolean   @default(true)
+  productId     String?
+  affectedCount Int       @default(0)
+  message       String?
+  details       String?
+  retryCount    Int       @default(0)
+  maxRetries    Int       @default(3)
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+}
+
+model ConflictLog {
+  id               String    @id @default(uuid())
+  productId        String
+  status           String    @default("OPEN")
+  localData        String
+  remoteData       String
+  fieldDifferences String
+  resolutionType   String?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+model WebhookEvent {
+  id                String   @id @default(uuid())
+  eventName         String
+  payload           String
+  signature         String?
+  signatureVerified Boolean  @default(false)
+  status            String   @default("PROCESSED")
+  processedAt       DateTime @default(now())
+  error             String?
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userName   String
+  action     String
+  entityType String
+  entityId   String?
+  details    String
+  createdAt  DateTime @default(now())
+}
+
+model Settings {
+  id              String   @id @default("default")
+  storeUrl        String   @default("https://demo-store.woocommerce.com")
+  consumerKey     String   @default("ck_demo_9876543210abcdef9876543210abcdef98765432")
+  consumerSecret  String   @default("cs_demo_1234567890abcdef1234567890abcdef12345678")
+  apiVersion      String   @default("wc/v3")
+  verifySsl       Boolean  @default(true)
+  webhookSecret   String   @default("whsec_demo_syncsphere_supersecret2026")
+  isDemoMode      Boolean  @default(true)
+  autoSyncOnSave  Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}

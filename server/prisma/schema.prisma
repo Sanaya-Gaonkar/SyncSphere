@@ -1,0 +1,132 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("EDITOR") // ADMIN, EDITOR
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    String?
+  remoteWooId Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Attribute {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  options   String   // JSON string array e.g. ["Red", "Blue", "Black"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String    @id @default(uuid())
+  name              String
+  sku               String    @unique
+  slug              String
+  shortDescription  String?
+  description       String?
+  regularPrice      Float     @default(0)
+  salePrice         Float?
+  costPrice         Float?
+  stockQuantity     Int       @default(0)
+  stockStatus       String    @default("INSTOCK") // INSTOCK, OUTOFSTOCK, ONBACKORDER
+  manageStock       Boolean   @default(true)
+  categories        String    @default("[]") // JSON string array of category names or objects
+  tags              String    @default("[]") // JSON string array of tags
+  attributes        String    @default("[]") // JSON string array of { name, values }
+  images            String    @default("[]") // JSON string array of image URLs
+  completenessScore Int       @default(0)    // 0 to 100
+  missingFields     String    @default("[]") // JSON string array of warnings
+  status            String    @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  syncStatus        String    @default("DRAFT") // IN_SYNC, PENDING, ERROR, CONFLICT, DRAFT
+  remoteWooId       Int?
+  lastSyncedAt      DateTime?
+  localChecksum     String?
+  remoteChecksum    String?
+  hasConflict       Boolean   @default(false)
+  conflictDetails   String?   // JSON string
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model SyncJob {
+  id            String    @id @default(uuid())
+  jobType       String    // PUSH_PRODUCT, PUSH_BULK, PULL_IMPORT, FULL_SYNC, RESOLVE_CONFLICT
+  status        String    // PENDING, RUNNING, SUCCESS, FAILED, CONFLICT
+  isSimulated   Boolean   @default(true)
+  productId     String?
+  affectedCount Int       @default(0)
+  message       String?
+  details       String?   // JSON string: logs, response, error stack
+  retryCount    Int       @default(0)
+  maxRetries    Int       @default(3)
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+}
+
+model ConflictLog {
+  id               String    @id @default(uuid())
+  productId        String
+  status           String    @default("OPEN") // OPEN, RESOLVED
+  localData        String    // JSON string representation of local product
+  remoteData       String    // JSON string representation of remote WooCommerce product
+  fieldDifferences String    // JSON string array of field diff objects
+  resolutionType   String?   // KEEP_LOCAL, KEEP_REMOTE, MERGE
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+model WebhookEvent {
+  id                String   @id @default(uuid())
+  eventName         String   // product.created, product.updated, product.deleted
+  payload           String   // JSON string
+  signature         String?
+  signatureVerified Boolean  @default(false)
+  status            String   @default("PROCESSED") // PROCESSED, DUPLICATE, FAILED
+  processedAt       DateTime @default(now())
+  error             String?
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userName   String
+  action     String   // e.g. PRODUCT_CREATED, SYNC_PUSH, CONFLICT_RESOLVED
+  entityType String   // PRODUCT, SETTINGS, SYNC, CSV, CATEGORY, WEBHOOK
+  entityId   String?
+  details    String   // JSON string
+  createdAt  DateTime @default(now())
+}
+
+model Settings {
+  id              String   @id @default("default")
+  storeUrl        String   @default("https://demo-store.woocommerce.com")
+  consumerKey     String   @default("ck_demo_9876543210abcdef9876543210abcdef98765432")
+  consumerSecret  String   @default("cs_demo_1234567890abcdef1234567890abcdef12345678")
+  apiVersion      String   @default("wc/v3")
+  verifySsl       Boolean  @default(true)
+  webhookSecret   String   @default("whsec_demo_syncsphere_supersecret2026")
+  isDemoMode      Boolean  @default(true)
+  autoSyncOnSave  Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
